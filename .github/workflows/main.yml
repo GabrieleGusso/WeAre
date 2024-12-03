@@ -24,7 +24,7 @@ jobs:
     - name: Install Dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install feedparser requests
+        pip install feedparser requests pytz
 
     - name: Execute Python Script
       env:  # Pass secrets as environment variables
