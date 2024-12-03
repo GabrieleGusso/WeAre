@@ -1,6 +1,7 @@
+import os
 import feedparser
-from datetime import datetime, timedelta
 import requests
+from datetime import datetime, timedelta
 from difflib import SequenceMatcher
 
 
@@ -156,8 +157,8 @@ rss_urls = [
 ]
 
 # Parametri del bot Telegram
-bot_token = "7801463866:AAGZwnKjlyiCp1dTyOvRY2bBKeoqubTqYcQ"  # Sostituisci con il token del tuo bot
-chat_id = "-1002411361533"  # Sostituisci con l'ID della chat del destinatario
+bot_token = os.getenv("BOT_TOKEN") # dai secrets di GitHub
+chat_id = os.getenv("CHAT_ID") # dai secrets di GitHub
 
 # Chiamata alla funzione
 get_rss_news_trends(
