@@ -112,7 +112,7 @@ def get_rss_news_trends(
     hours=6,
     bot_token=None,
     chat_id=None,
-    log_file="Desktop/sent_articles.log",
+    log_file="sent_articles.log",
 ):
     """
     Recupera i titoli e i link degli articoli più rilevanti dai feed RSS,
