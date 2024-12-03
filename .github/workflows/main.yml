@@ -2,12 +2,9 @@ name: Run Python Script
 
 on:
   schedule:
-    - cron: "0 10 * * *"  # Runs daily at 10 UTC
-    - cron: "10 11 * * *"  # test
-    - cron: "20 11 * * *"  # test
-    - cron: "30 11 * * *"  # test
-    - cron: "0 14 * * *"  # Runs daily at 14 UTC
-    - cron: "0 17 * * *"  # Runs daily at 17 UTC
+    - cron: "00 08 * * *"  # Runs daily at 09:30 UTC (09:00 ora solare - 10:00 ora legale)
+    - cron: "00 12 * * *"  # Runs daily at 13:30 UTC (13:00 ora solare - 14:00 ora legale)
+    - cron: "00 16 * * *"  # Runs daily at 17:30 UTC (17:00 ora solare - 18:00 ora legale)
   workflow_dispatch: # Allows manual trigger
 
 jobs:
