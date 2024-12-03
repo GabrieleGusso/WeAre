@@ -101,7 +101,7 @@ def get_rss_news_trends(
 
     # Calcola il bonus totale dagli articoli senza data
     bonus_relevance = sum(
-        article["relevance"] * 0.13 for article in articles_without_date
+        article["relevance"] * 0.3 for article in articles_without_date
     )
 
     # Applica il bonus agli articoli con data
