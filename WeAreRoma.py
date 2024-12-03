@@ -4,6 +4,10 @@ import feedparser
 from datetime import datetime, timedelta
 import requests
 from difflib import SequenceMatcher
+import pytz
+
+# Fuso orario dell'Europa Centrale
+CET = pytz.timezone("Europe/Rome")
 
 
 # Funzione per inviare il messaggio su Telegram
@@ -67,7 +71,7 @@ def load_log(log_file):
             if len(parts) == 3:
                 h, t, relevance = parts
                 log_data[h] = (
-                    datetime.strptime(t, "%Y-%m-%dT%H:%M:%S"),
+                    datetime.strptime(t, "%Y-%m-%dT%H:%M:%S").replace(tzinfo=CET),
                     float(relevance),
                 )
         return log_data
@@ -79,7 +83,7 @@ def update_log(log_file, articles):
     Aggiorna il file di log con i nuovi articoli e punteggi, rimuovendo quelli
     più vecchi di 24 ore.
     """
-    current_time = datetime.now()
+    current_time = datetime.now(CET)
     existing_log = load_log(log_file)
     updated_log = {
         h: (t, r)
@@ -120,7 +124,7 @@ def get_rss_news_trends(
     Evita di inviare articoli già inviati nelle ultime 24 ore.
     """
     articles_with_date = []
-    current_time = datetime.now()
+    current_time = datetime.now(CET)
     time_threshold = current_time - timedelta(hours=hours)
 
     # Carica il log degli articoli già inviati
@@ -131,7 +135,7 @@ def get_rss_news_trends(
         feed = feedparser.parse(rss_url)
         for entry in feed.entries:
             if hasattr(entry, "published_parsed") and entry.published_parsed:
-                published_time = datetime(*entry.published_parsed[:6])
+                published_time = CET.localize(datetime(*entry.published_parsed[:6]))
                 if published_time >= time_threshold:
                     title_relevance = calculate_relevance(entry.title, keywords)
                     summary_relevance = calculate_relevance(
@@ -176,14 +180,13 @@ def get_rss_news_trends(
         for idx, article in enumerate(new_articles, start=1):
             relevance_percentage = article["relevance"] / max_relevance_global * 100
             message = (
-                f"Rassegna ore {datetime.now().strftime('%H')}\n"
+                f"Rassegna ore {current_time.strftime('%H')}\n"
                 f"Articolo {idx} - Rilevanza {relevance_percentage:.0f}%\n"
                 f"<i>{article['published'].strftime('%Y-%m-%d %H:%M:%S')}</i>\n\n"
                 f"<b>{article['title']}</b>\n"
                 f"{article['link']}\n"
             )
-            # send_telegram_message(bot_token, chat_id, message)
-            print(message)
+            send_telegram_message(bot_token, chat_id, message)
             new_hashes.append(article)
 
         update_log(log_file, new_articles)
