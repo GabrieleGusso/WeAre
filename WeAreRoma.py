@@ -1,7 +1,8 @@
+import hashlib
 import os
 import feedparser
-import requests
 from datetime import datetime, timedelta
+import requests
 from difflib import SequenceMatcher
 
 
@@ -20,56 +21,121 @@ def is_similar(title1, title2, threshold=0.6):
     return SequenceMatcher(None, title1, title2).ratio() > threshold
 
 
-def remove_duplicates(articles, threshold=0.6):
+def consolidate_relevance(articles, threshold=0.6):
     """
-    Rimuove articoli con titoli simili, mantenendo quello con la maggiore rilevanza.
+    Combina articoli simili aggiungendo il punteggio dell'articolo scartato
+    a quello mantenuto.
     """
-    unique_articles = []
+    consolidated_articles = []
     for article in articles:
-        # Cerca un articolo simile già nella lista dei risultati unici
         similar_article = next(
             (
-                unique_article
-                for unique_article in unique_articles
-                if is_similar(article["title"], unique_article["title"], threshold)
+                existing_article
+                for existing_article in consolidated_articles
+                if is_similar(article["title"], existing_article["title"], threshold)
             ),
             None,
         )
         if similar_article:
-            # Se esiste un articolo simile, mantieni quello con maggiore rilevanza
-            if article["relevance"] > similar_article["relevance"]:
-                unique_articles.remove(similar_article)
-                unique_articles.append(article)
+            # Aggiungi la rilevanza dell'articolo scartato a quello mantenuto
+            similar_article["relevance"] += article["relevance"]
         else:
-            # Se non ci sono articoli simili, aggiungilo alla lista
-            unique_articles.append(article)
-    return unique_articles
+            consolidated_articles.append(article)
+    return consolidated_articles
+
+
+# Funzione per calcolare l'hash di un articolo
+def calculate_article_hash(article):
+    """
+    Calcola un hash univoco per un articolo basandosi sul titolo e sul link.
+    """
+    hash_input = f"{article['title']}_{article['link']}".encode("utf-8")
+    return hashlib.sha256(hash_input).hexdigest()
+
+
+# Funzione per caricare il file di log
+def load_log(log_file):
+    """
+    Carica gli articoli dal file di log con punteggi e timestamp.
+    """
+    if not os.path.exists(log_file):
+        return {}
+    with open(log_file, "r") as file:
+        log_data = {}
+        for line in file:
+            parts = line.strip().split()
+            if len(parts) == 3:
+                h, t, relevance = parts
+                log_data[h] = (
+                    datetime.strptime(t, "%Y-%m-%dT%H:%M:%S"),
+                    float(relevance),
+                )
+        return log_data
+
+
+# Funzione per aggiornare il file di log
+def update_log(log_file, articles):
+    """
+    Aggiorna il file di log con i nuovi articoli e punteggi, rimuovendo quelli
+    più vecchi di 24 ore.
+    """
+    current_time = datetime.now()
+    existing_log = load_log(log_file)
+    updated_log = {
+        h: (t, r)
+        for h, (t, r) in existing_log.items()
+        if t > current_time - timedelta(hours=24)
+    }
+
+    for article in articles:
+        updated_log[calculate_article_hash(article)] = (
+            current_time,
+            article["relevance"],
+        )
+
+    with open(log_file, "w") as file:
+        for h, (t, r) in updated_log.items():
+            file.write(f"{h} {t.strftime('%Y-%m-%dT%H:%M:%S')} {r}\n")
+
+
+def calculate_relevance(text, keywords):
+    """
+    Calcola la rilevanza di un testo basandosi sul conteggio delle occorrenze di ogni parola chiave.
+    """
+    return sum(text.lower().count(keyword.lower()) for keyword in keywords)
 
 
 def get_rss_news_trends(
-    rss_urls, query, num_articles=10, hours=6, bot_token=None, chat_id=None
+    rss_urls,
+    keywords,
+    num_articles=10,
+    hours=6,
+    bot_token=None,
+    chat_id=None,
+    log_file="Desktop/sent_articles.log",
 ):
     """
     Recupera i titoli e i link degli articoli più rilevanti dai feed RSS,
     ordinandoli per "trend" e limitando agli articoli pubblicati entro un numero di ore specificato.
-    Gli articoli senza data di pubblicazione aumentano la rilevanza.
+    Evita di inviare articoli già inviati nelle ultime 24 ore.
     """
     articles_with_date = []
-    articles_without_date = []
     current_time = datetime.now()
     time_threshold = current_time - timedelta(hours=hours)
+
+    # Carica il log degli articoli già inviati
+    sent_hashes = load_log(log_file)
+    max_relevance_logged = max((r for _, r in sent_hashes.values()), default=0)
 
     for rss_url in rss_urls:
         feed = feedparser.parse(rss_url)
         for entry in feed.entries:
             if hasattr(entry, "published_parsed") and entry.published_parsed:
-                # Gestione articoli con data di pubblicazione
                 published_time = datetime(*entry.published_parsed[:6])
                 if published_time >= time_threshold:
-                    # Calcola la rilevanza del termine di ricerca
-                    title_relevance = entry.title.lower().count(query.lower())
-                    summary_relevance = (
-                        entry.get("summary", "").lower().count(query.lower())
+                    title_relevance = calculate_relevance(entry.title, keywords)
+                    summary_relevance = calculate_relevance(
+                        entry.get("summary", ""), keywords
                     )
                     total_relevance = title_relevance + summary_relevance
 
@@ -82,67 +148,47 @@ def get_rss_news_trends(
                                 "relevance": total_relevance,
                             }
                         )
-            else:
-                # Articolo senza data di pubblicazione
-                title_relevance = entry.title.lower().count(query.lower())
-                summary_relevance = (
-                    entry.get("summary", "").lower().count(query.lower())
-                )
-                total_relevance = title_relevance + summary_relevance
 
-                if total_relevance > 0:
-                    articles_without_date.append(
-                        {
-                            "title": entry.title,
-                            "link": entry.link,
-                            "relevance": total_relevance,
-                        }
-                    )
+    # Consolidamento del punteggio per articoli simili
+    articles_with_date = consolidate_relevance(articles_with_date)
 
-    # Calcola il bonus totale dagli articoli senza data
-    bonus_relevance = sum(
-        article["relevance"] * 0.3 for article in articles_without_date
-    )
-
-    # Applica il bonus agli articoli con data
-    for article in articles_with_date:
-        article["relevance"] += bonus_relevance
-
-    # Ordina gli articoli con data per rilevanza (dal più alto al più basso)
+    # Ordina gli articoli consolidati per punteggio di rilevanza
     articles_with_date = sorted(
         articles_with_date, key=lambda x: x["relevance"], reverse=True
     )
 
-    # Rimuovi articoli con titoli duplicati o molto simili
-    articles_with_date = remove_duplicates(articles_with_date)
+    # Genera una lista estesa di articoli per garantire almeno num_articles dopo il filtraggio
+    extended_list = articles_with_date[: num_articles * 10]
 
-    # Limita al numero massimo di articoli richiesti
-    articles_with_date = articles_with_date[:num_articles]
+    new_articles = [
+        article
+        for article in extended_list
+        if calculate_article_hash(article) not in sent_hashes
+    ]
 
-    # Trova la rilevanza massima
-    max_relevance = (
-        max(article["relevance"] for article in articles_with_date)
-        if articles_with_date
-        else 1
-    )
+    new_articles = new_articles[:num_articles]
 
-    # Ottieni l'ora corrente
-    current_time_str = datetime.now().strftime("%H")
+    if new_articles:
+        new_hashes = []
+        max_relevance_current = max(article["relevance"] for article in new_articles)
+        max_relevance_global = max(max_relevance_logged, max_relevance_current)
 
-    # Invia ogni articolo separatamente con la rilevanza in percentuale
-    if articles_with_date:
-        for idx, article in enumerate(articles_with_date, start=1):
-            relevance_percentage = (article["relevance"] / max_relevance) * 100
+        for idx, article in enumerate(new_articles, start=1):
+            relevance_percentage = article["relevance"] / max_relevance_global * 100
             message = (
-                f"Rassegna ore {current_time_str}\n"
+                f"Rassegna ore {datetime.now().strftime('%H')}\n"
                 f"Articolo {idx} - Rilevanza {relevance_percentage:.0f}%\n"
                 f"<i>{article['published'].strftime('%Y-%m-%d %H:%M:%S')}</i>\n\n"
                 f"<b>{article['title']}</b>\n"
                 f"{article['link']}\n"
             )
-            send_telegram_message(bot_token, chat_id, message)
+            # send_telegram_message(bot_token, chat_id, message)
+            print(message)
+            new_hashes.append(article)
+
+        update_log(log_file, new_articles)
     else:
-        message = f"Nessuna notizia trovata per la ricerca '{query}' nelle ultime {hours} ore."
+        message = f"Nessuna notizia trovata per la ricerca '{', '.join(keywords)}' nelle ultime {hours} ore."
         send_telegram_message(bot_token, chat_id, message)
 
 
@@ -156,11 +202,19 @@ rss_urls = [
     "https://www.ansa.it/lazio/notizie/lazio_rss.xml",
 ]
 
+# Configurazione parole chiave
+keywords = ["Roma", "video"]
+
 # Parametri del bot Telegram
-bot_token = os.getenv("BOT_TOKEN") # dai secrets di GitHub
-chat_id = os.getenv("CHAT_ID") # dai secrets di GitHub
+bot_token = "7801463866:AAGZwnKjlyiCp1dTyOvRY2bBKeoqubTqYcQ"
+chat_id = "-1002411361533"
 
 # Chiamata alla funzione
 get_rss_news_trends(
-    rss_urls, "Roma", num_articles=10, hours=6, bot_token=bot_token, chat_id=chat_id
+    rss_urls,
+    keywords,
+    num_articles=5,
+    hours=10,
+    bot_token=bot_token,
+    chat_id=chat_id,
 )
