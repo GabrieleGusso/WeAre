@@ -3,6 +3,9 @@ name: Run Python Script
 on:
   schedule:
     - cron: "0 10 * * *"  # Runs daily at 10 UTC
+    - cron: "10 11 * * *"  # test
+    - cron: "20 11 * * *"  # test
+    - cron: "30 11 * * *"  # test
     - cron: "0 14 * * *"  # Runs daily at 14 UTC
     - cron: "0 17 * * *"  # Runs daily at 17 UTC
   workflow_dispatch: # Allows manual trigger
