@@ -9,37 +9,62 @@ on:
   workflow_dispatch: # Allows manual trigger
 
 jobs:
+  check-run:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.check_local_time.outputs.run }}
+    steps:
+      - name: Check local time
+        id: check_local_time
+        env:
+          TRIGGER: ${{ github.event_name }}
+        run: |
+          echo "Trigger: ${TRIGGER}"
+          if [[ ${TRIGGER} == 'schedule' ]]; then
+            # Controlla l'ora locale in Europa/Roma
+            CURRENT_HOUR=$(date --date='TZ="Europe/Rome" now' +%H)
+            if [[ ${CURRENT_HOUR} == "01" || ${CURRENT_HOUR} == "09" || ${CURRENT_HOUR} == "13" || ${CURRENT_HOUR} == "17" ]]; then
+              echo "Esecuzione consentita alle ${CURRENT_HOUR}:00 ora locale in Europa/Roma"
+              echo "run=True" >> "$GITHUB_OUTPUT"
+            else
+              echo "Non è l'orario desiderato. Ora locale in Europa/Roma: ${CURRENT_HOUR}:00"
+              echo "run=False" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "Trigger manuale, bypass controllo orario."
+            echo "run=True" >> "$GITHUB_OUTPUT"
+
   run-script:
     runs-on: ubuntu-latest
-
+    needs: check-run
+    if: needs.check-run.outputs.run == 'True' # Esegui solo se il controllo orario ha successo
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v3
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: "3.x"
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
 
-    - name: Install Dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install feedparser requests pytz
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install feedparser requests pytz
 
-    - name: Execute Python Script
-      env:  # Pass secrets as environment variables
-        BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-        CHAT_ID: ${{ secrets.CHAT_ID }}
-      run: |
-        python WeAreRoma.py
+      - name: Execute Python Script
+        env:  # Pass secrets as environment variables
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+        run: |
+          python WeAreRoma.py
 
-    # Commit and push changes to `sent_articles.log`
-    - name: Commit changes
-      if: success()
-      run: |
-        git config --local user.name "github-actions[bot]"
-        git config --local user.email "github-actions[bot]@users.noreply.github.com"
-        git add sent_articles.log
-        git commit -m "Aggiornamento sent_articles.log"
-        git push
-        
+      # Commit and push changes to `sent_articles.log`
+      - name: Commit changes
+        if: success()
+        run: |
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git add sent_articles.log
+          git commit -m "Aggiornamento sent_articles.log"
+          git push
