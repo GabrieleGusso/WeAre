@@ -209,8 +209,8 @@ rss_urls = [
 keywords = ["Roma", "video"]
 
 # Parametri del bot Telegram
-bot_token = BOT_TOKEN
-chat_id = CHAT_ID
+bot_token = os.getenv("BOT_TOKEN") # dai secrets di GitHub
+chat_id = os.getenv("CHAT_ID") # dai secrets di GitHub
 
 # Chiamata alla funzione
 get_rss_news_trends(
