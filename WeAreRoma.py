@@ -209,8 +209,8 @@ rss_urls = [
 keywords = ["Roma", "video"]
 
 # Parametri del bot Telegram
-bot_token = "7801463866:AAGZwnKjlyiCp1dTyOvRY2bBKeoqubTqYcQ"
-chat_id = "-1002411361533"
+bot_token = BOT_TOKEN
+chat_id = CHAT_ID
 
 # Chiamata alla funzione
 get_rss_news_trends(
