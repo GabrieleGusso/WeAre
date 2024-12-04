@@ -1,4 +1,4 @@
-name: Run Python Script
+name: Rassegna Stampa
 
 on:
   schedule:
@@ -32,3 +32,14 @@ jobs:
         CHAT_ID: ${{ secrets.CHAT_ID }}
       run: |
         python WeAreRoma.py
+
+    # Commit and push changes to `sent_articles.log`
+    - name: Commit changes
+      if: success()
+      run: |
+        git config --local user.name "github-actions[bot]"
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git add sent_articles.log
+        git commit -m "Aggiornamento sent_articles.log"
+        git push
+        
