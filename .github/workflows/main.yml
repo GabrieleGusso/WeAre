@@ -20,7 +20,7 @@ jobs:
           if [[ ${TRIGGER} == 'schedule' ]]; then
             # Controlla l'ora locale in Europa/Roma
             CURRENT_HOUR=$(date --date='TZ="Europe/Rome" now' +%H)
-            if [[ ${CURRENT_HOUR} == "01" || ${CURRENT_HOUR} == "09" || ${CURRENT_HOUR} == "13" || ${CURRENT_HOUR} == "17" ]]; then
+            if [[ ${CURRENT_HOUR} == "01" || ${CURRENT_HOUR} == "09" || ${CURRENT_HOUR} == "13" || ${CURRENT_HOUR} == "19" || ${CURRENT_HOUR} == "20" ]]; then
               echo "Esecuzione consentita alle ${CURRENT_HOUR}:00 ora locale in Europa/Roma"
               echo "run=True" >> "$GITHUB_OUTPUT"
             else
