@@ -27,7 +27,7 @@ jobs:
             # Check local time in Europe/Rome
             CURRENT_HOUR=$(TZ=Europe/Rome date +%H)
             echo "Current hour in Europe/Rome: ${CURRENT_HOUR}"
-            if [[ "${CURRENT_HOUR}" == "01" || "${CURRENT_HOUR}" == "09" || "${CURRENT_HOUR}" == "13" || "${CURRENT_HOUR}" == "17" ]]; then
+            if [[ "${CURRENT_HOUR}" == "01" || "${CURRENT_HOUR}" == "09" || "${CURRENT_HOUR}" == "13" || "${CURRENT_HOUR}" == "17" || "${CURRENT_HOUR}" == "07" && "${CURRENT_MINUTE}" == "50" ]]; then
               echo "Time matches desired hour (${CURRENT_HOUR}:00)."
               echo "run=True" >> "$GITHUB_OUTPUT"
             else
