@@ -2,9 +2,9 @@ name: Rassegna Stampa
 
 on:
   schedule:
-    # Pianificato per eseguire frequentemente, in modo che il controllo avvenga dinamicamente
-    - cron: "0 * * * *"  # Esegui ogni ora
-  workflow_dispatch: # Consenti il trigger manuale
+    # Trigger every hour
+    - cron: "0 * * * *"
+  workflow_dispatch: # Allow manual trigger
 
 jobs:
   check-run:
@@ -18,24 +18,26 @@ jobs:
           TRIGGER: ${{ github.event_name }}
         run: |
           echo "Trigger: ${TRIGGER}"
-          if [[ ${TRIGGER} == 'schedule' ]]; then
-            # Controlla l'ora locale in Europa/Roma
-            CURRENT_HOUR=$(date --date='TZ="Europe/Rome" now' +%H)
-            if [[ ${CURRENT_HOUR} == "01" || ${CURRENT_HOUR} == "09" || ${CURRENT_HOUR} == "13" || ${CURRENT_HOUR} == "17" ]]; then
-              echo "Esecuzione consentita alle ${CURRENT_HOUR}:00 ora locale in Europa/Roma"
+          if [[ "${TRIGGER}" == 'schedule' ]]; then
+            # Check local time in Europe/Rome
+            CURRENT_HOUR=$(TZ=Europe/Rome date +%H)
+            echo "Current hour in Europe/Rome: ${CURRENT_HOUR}"
+            if [[ "${CURRENT_HOUR}" == "01" || "${CURRENT_HOUR}" == "09" || "${CURRENT_HOUR}" == "13" || "${CURRENT_HOUR}" == "17" ]]; then
+              echo "Time matches desired hour (${CURRENT_HOUR}:00)."
               echo "run=True" >> "$GITHUB_OUTPUT"
             else
-              echo "Non è l'orario desiderato. Ora locale in Europa/Roma: ${CURRENT_HOUR}:00"
+              echo "Not a desired hour. Current local time: ${CURRENT_HOUR}:00"
               echo "run=False" >> "$GITHUB_OUTPUT"
             fi
           else
-            echo "Trigger manuale, bypass controllo orario."
+            echo "Manual trigger, bypassing time check."
             echo "run=True" >> "$GITHUB_OUTPUT"
+          fi
 
   run-script:
     runs-on: ubuntu-latest
     needs: check-run
-    if: needs.check-run.outputs.run == 'True' # Esegui solo se il controllo orario ha successo
+    if: needs.check-run.outputs.run == 'True'
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
