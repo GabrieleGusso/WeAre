@@ -4,6 +4,17 @@ on:
   schedule:
     # Trigger every hour
     - cron: "0 * * * *"
+    - cron: "10 * * * *"
+    - cron: "20 * * * *"
+    - cron: "30 * * * *"
+    - cron: "40 * * * *"
+    - cron: "50 * * * *"
+    - cron: "05 * * * *"
+    - cron: "15 * * * *"
+    - cron: "25 * * * *"
+    - cron: "35 * * * *"
+    - cron: "45 * * * *"
+    - cron: "55 * * * *"
   workflow_dispatch: # Allow manual trigger
 
 jobs:
