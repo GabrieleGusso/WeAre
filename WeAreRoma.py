@@ -217,7 +217,7 @@ get_rss_news_trends(
     rss_urls,
     keywords,
     num_articles=5,
-    hours=10,
+    hours=16,
     bot_token=bot_token,
     chat_id=chat_id,
 )
