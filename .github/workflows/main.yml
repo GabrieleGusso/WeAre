@@ -4,11 +4,6 @@ on:
   schedule:
     # Trigger every hour
     - cron: "0 * * * *"
-    - cron: "10 * * * *"
-    - cron: "20 * * * *"
-    - cron: "30 * * * *"
-    - cron: "40 * * * *"
-    - cron: "50 * * * *"
   workflow_dispatch: # Allow manual trigger
 
 jobs:
@@ -27,7 +22,7 @@ jobs:
             # Check local time in Europe/Rome
             CURRENT_HOUR=$(TZ=Europe/Rome date +%H)
             echo "Current hour in Europe/Rome: ${CURRENT_HOUR}"
-            if [[ "${CURRENT_HOUR}" == "01" || "${CURRENT_HOUR}" == "09" || "${CURRENT_HOUR}" == "13" || "${CURRENT_HOUR}" == "17" || "${CURRENT_HOUR}" == "07" && "${CURRENT_MINUTE}" == "50" ]]; then
+            if [[ "${CURRENT_HOUR}" == "01" || "${CURRENT_HOUR}" == "09" || "${CURRENT_HOUR}" == "13" || "${CURRENT_HOUR}" == "17" || "${CURRENT_HOUR}" == "08" ]]; then
               echo "Time matches desired hour (${CURRENT_HOUR}:00)."
               echo "run=True" >> "$GITHUB_OUTPUT"
             else
