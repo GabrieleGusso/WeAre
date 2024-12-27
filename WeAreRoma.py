@@ -206,7 +206,7 @@ rss_urls = [
 ]
 
 # Configurazione parole chiave
-keywords = ["Roma", "video", "filmato", "incidente", "incendio", "fuoco", "morto", "morta"]
+keywords = ["video", "filmato", "incidente", "incendio", "fuoco", "morto", "morta"]
 
 # Parametri del bot Telegram
 bot_token = os.getenv("BOT_TOKEN") # dai secrets di GitHub
@@ -217,7 +217,7 @@ get_rss_news_trends(
     rss_urls,
     keywords,
     num_articles=5,
-    hours=16,
+    hours=6,
     bot_token=bot_token,
     chat_id=chat_id,
 )
