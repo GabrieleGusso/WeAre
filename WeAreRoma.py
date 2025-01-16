@@ -18,7 +18,7 @@ def send_telegram_message(bot_token, chat_id, message):
     return response
 
 
-def is_similar(title1, title2, threshold=0.6):
+def is_similar(title1, title2, threshold=0.5):
     """
     Verifica se due stringhe sono simili oltre una certa soglia.
     """
@@ -206,7 +206,7 @@ rss_urls = [
 ]
 
 # Configurazione parole chiave
-keywords = ["video", "filmato", "incidente", "incendio", "fuoco", "morto", "morta"]
+keywords = ["Roma", "video", "filmato", "incidente", "incendio", "fuoco", "morto", "morta"]
 
 # Parametri del bot Telegram
 bot_token = os.getenv("BOT_TOKEN") # dai secrets di GitHub
